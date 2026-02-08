@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gated Solana NFT to HyperEVM Bridge Widget</title>
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
+    <script src="https://unpkg.com/@solana/spl-token@latest/lib/index.iife.js"></script>
+    <style>
+        .bridge-widget {
+            background-color: #f0f0f0;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 300px;
+            margin: auto;
+        }
+        .bridge-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .bridge-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="bridge-widget">
+        <h3>Gated Bridge: Solana NFT to HyperEVM</h3>
+        <p>Only holders of the specified NFT can bridge. Connect your wallet to check.</p>
+        <button class="bridge-button" onclick="connectAndCheck()">Check & Bridge NFT</button>
+    </div>
+
+    <script>
+        async function connectAndCheck() {
+            if (!window.solana) {
+                alert('Please install a Solana wallet like Phantom.');
+                return;
+            }
+
+            try {
+                // Connect wallet
+                await window.solana.connect();
+                const publicKey = window.solana.publicKey;
+
+                // Solana mainnet connection
+                const connection = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com');
+
+                // NFT mint address
+                const nftMintAddress = 'KYxEk1mKkCQJ4yz3NSdVgKi4wpm3Y6fPBkCgCM4deq8';
+                const mint = new solanaWeb3.PublicKey(nftMintAddress);
+
+                // Get associated token account (ATA)
+                const ata = await splToken.getAssociatedTokenAddress(mint, publicKey);
+
+                // Get account info
+                const accountInfo = await splToken.getAccount(connection, ata);
+
+                // For NFTs, amount should be 1 (BigInt)
+                if (accountInfo.amount === 1n) {
+                    // Holder confirmed, open bridge
+                    const url = 'https://www.portalbridge.com/#/nft?sourceChain=solana&targetChain=hyperevm';
+                    window.open(url, '_blank');
+                } else {
+                    alert('You do not hold this NFT.');
+                }
+            } catch (error) {
+                if (error.name === 'WalletNotConnectedError') {
+                    return; // User canceled connection
+                }
+                if (error.message.includes('TokenAccountNotFoundError') || error.message.includes('TokenInvalidAccountOwnerError')) {
+                    alert('You do not hold this NFT.');
+                } else {
+                    console.error(error);
+                    alert('Error checking NFT ownership. Please try again.');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
